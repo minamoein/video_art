@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Floating Art</title>
+
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #111;
+  }
+
+  canvas {
+    display: block;
+  }
+</style>
+
+</head>
+<body>
+
+<canvas id="artCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('artCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const imageSources = ['1.jpg', '3.jpg', '5.jpg'];
+const images = [];
+let loadedCount = 0;
+let drawing = false;
+let colorShift = 0;
+
+imageSources.forEach(src => {
+  const img = new Image();
+  img.src = src;
+  img.onload = () => {
+    loadedCount++;
+    if (loadedCount === imageSources.length) {
+      startArt();
+    }
+  }
+  images.push(img);
+});
+
+function startArt(){
+
+  class ArtImage {
+    constructor(img) {
+      this.img = img;
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.opacity = Math.random() * 0.5 + 0.3;
+      this.scale = Math.random() * 0.8 + 0.3;
+      this.dx = (Math.random() - 0.05) * 0.2;
+      this.dy = (Math.random() - 0.05) * 0.2;
+      this.rotation = Math.random() * 360;
+      this.dRotation = (Math.random() - 0.5) * 0.1;
+    }
+
+    update() {
+      this.x += this.dx;
+      this.y += this.dy;
+      this.rotation += this.dRotation;
+
+      this.opacity += (Math.random() - 0.5) * 0.01;
+      if (this.opacity < 0.2) this.opacity = 0.2;
+      if (this.opacity > 0.9) this.opacity = 0.9;
+
+      if (this.x > canvas.width) this.x = 0;
+      if (this.x < 0) this.x = canvas.width;
+      if (this.y > canvas.height) this.y = 0;
+      if (this.y < 0) this.y = canvas.height;
+    }
+
+    draw() {
+      ctx.save();
+      ctx.globalAlpha = this.opacity;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation * Math.PI / 180);
+
+      if (drawing) {
+        ctx.filter = `hue-rotate(${colorShift}deg) saturate(1.5)`;
+      } else {
+        ctx.filter = "none";
+      }
+
+      ctx.drawImage(
+        this.img,
+        -this.img.width * this.scale / 2,
+        -this.img.height * this.scale / 2,
+        this.img.width * this.scale,
+        this.img.height * this.scale
+      );
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  const artObjects = [];
+
+  images.forEach(img => {
+    for (let i = 0; i < 4; i++) {
+      artObjects.push(new ArtImage(img));
+    }
+  });
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    artObjects.forEach(obj => {
+      obj.update();
+      obj.draw();
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  canvas.addEventListener("mousedown", () => { drawing = true; });
+  canvas.addEventListener("mouseup", () => { drawing = false; colorShift = 0; });
+  canvas.addEventListener("mousemove", () => {
+    if (drawing) {
+      colorShift += 4;
+      if (colorShift > 360) colorShift = 0;
+    }
+  });
+
+  // برای موبایل (تاچ)
+  canvas.addEventListener("touchstart", () => { drawing = true; });
+  canvas.addEventListener("touchend", () => { drawing = false; colorShift = 0; });
+  canvas.addEventListener("touchmove", () => {
+    if (drawing) {
+      colorShift += 4;
+      if (colorShift > 360) colorShift = 0;
+    }
+  });
+
+}
+</script>
+
+</body>
+</html>
